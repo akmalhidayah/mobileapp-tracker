@@ -26,7 +26,11 @@ class LayarGaleri extends StatelessWidget {
         const BannerPeringatan('Periksa kesiapan sebelum mulai.'),
         const BannerPeringatan('GPS mati.', bahaya: true),
         for (final s in StatusPerjalanan.values)
-          PanelStatusPerjalanan(status: s),
+          PanelStatusPerjalanan(
+            status: s,
+            sedangKirim: false,
+            onSinkronkan: () {},
+          ),
         const KartuStatistik(
           label: 'Ritase',
           nilai: '12',
