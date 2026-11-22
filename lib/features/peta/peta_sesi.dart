@@ -1,16 +1,16 @@
-import 'dart:math' as math;
-
 import 'package:flutter_map/flutter_map.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../app/app_scope.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
 import '../../core/theme/app_space.dart';
 import '../../core/theme/app_text.dart';
 import '../../core/theme/app_ukuran.dart';
 import '../../core/widgets/komponen.dart';
-import '../../app/app_scope.dart';
+import '../../data/dummy/dummy_data.dart';
 import '../../data/models/snapshot_sesi.dart';
+import '../../data/models/status_perjalanan.dart';
 
 abstract final class KonfigurasiPeta {
   static const tileUrl = String.fromEnvironment(
@@ -100,8 +100,8 @@ class PetaSesiState extends State<PetaSesi> {
       CameraFit.bounds(
         bounds: LatLngBounds.fromPoints([
           ...AppScope.baca(context).ruteHauling.garis,
-          ...AppScope.baca(context).areaMuat.poligon,
-          ...AppScope.baca(context).areaBongkar.poligon,
+          DummyData.titikMuat.posisi,
+          DummyData.titikBongkar.posisi,
         ]),
         padding: const EdgeInsets.all(AppSpace.s32),
       ),
@@ -178,22 +178,6 @@ class PetaSesiState extends State<PetaSesi> {
                       panBuffer: 0,
                       errorTileCallback: (_, e, s) => _gagalTile(),
                     ),
-                  PolygonLayer(
-                    polygons: [
-                      Polygon(
-                        points: AppScope.baca(context).areaMuat.poligon,
-                        color: AppColors.isiAreaMuat,
-                        borderColor: AppColors.aksenTeks,
-                        borderStrokeWidth: AppUkuran.areaPoligon,
-                      ),
-                      Polygon(
-                        points: AppScope.baca(context).areaBongkar.poligon,
-                        color: AppColors.isiAreaBongkar,
-                        borderColor: AppColors.info,
-                        borderStrokeWidth: AppUkuran.areaPoligon,
-                      ),
-                    ],
-                  ),
                   PolylineLayer(
                     polylines: [
                       Polyline(
@@ -224,46 +208,39 @@ class PetaSesiState extends State<PetaSesi> {
                         ),
                       ],
                     ),
-                  if (p != null)
-                    MarkerLayer(
-                      markers: [
+                  MarkerLayer(
+                    markers: [
+                      for (final (lokasi, jenis, warna) in [
+                        (DummyData.titikMuat, 'Muat', AppColors.sukses),
+                        (
+                          DummyData.titikBongkar,
+                          'Bongkar',
+                          AppColors.titikBongkar,
+                        ),
+                      ])
                         Marker(
-                          point: p.posisi,
-                          width: AppUkuran.kotakPenanda,
-                          height: AppUkuran.kotakPenanda,
-                          child: Semantics(
-                            label:
-                                'Posisi ${s.nomorTruk}${s.lokasiTersedia ? '' : ', usang'}',
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(AppSpace.s4),
-                                  decoration: const BoxDecoration(
-                                    color: AppColors.permukaan,
-                                    borderRadius: AppRadius.brKecil,
-                                  ),
-                                  child: Text(
-                                    s.nomorTruk,
-                                    style: AppText.kecilTebal,
-                                  ),
-                                ),
-                                Transform.rotate(
-                                  angle: p.arah * math.pi / 180,
-                                  child: Icon(
-                                    Icons.navigation,
-                                    size: AppUkuran.penandaTruk,
-                                    color: s.lokasiTersedia
-                                        ? AppColors.aksenTeks
-                                        : AppColors.teksSekunder,
-                                  ),
-                                ),
-                              ],
+                          point: lokasi.posisi,
+                          width: AppUkuran.ikonBesar,
+                          height: AppUkuran.ikonBesar,
+                          alignment: Alignment.topCenter,
+                          child: Tooltip(
+                            message: '$jenis · ${lokasi.nama}',
+                            child: Icon(
+                              Icons.location_on_rounded,
+                              color: warna,
+                              size: AppUkuran.ikonBesar,
                             ),
                           ),
                         ),
-                      ],
-                    ),
+                      if (p != null)
+                        Marker(
+                          point: p.posisi,
+                          width: AppUkuran.penandaTruk,
+                          height: AppUkuran.penandaTruk,
+                          child: _PenandaTruk(snapshot: s),
+                        ),
+                    ],
+                  ),
                   Align(
                     alignment: Alignment.bottomRight,
                     child: Container(
@@ -317,6 +294,61 @@ class PetaSesiState extends State<PetaSesi> {
   }
 }
 
+class _PenandaTruk extends StatelessWidget {
+  const _PenandaTruk({required this.snapshot});
+
+  final SnapshotSesi snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    final (warnaTitik, keterangan) = snapshot.lokasiTersedia
+        ? (
+            switch (snapshot.status) {
+              StatusPerjalanan.kosong => AppColors.info,
+              StatusPerjalanan.diLoading => AppColors.sukses,
+              StatusPerjalanan.bermuatan => AppColors.aksenTeks,
+              StatusPerjalanan.diDumping => AppColors.titikBongkar,
+            },
+            snapshot.status.tahap,
+          )
+        : (AppColors.teksSekunder, 'lokasi terakhir usang');
+    return Semantics(
+      image: true,
+      label: 'Posisi ${snapshot.nomorTruk}, $keterangan',
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.permukaan,
+          borderRadius: AppRadius.brKecil,
+          border: Border.all(color: AppColors.garisKuat),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            const Icon(
+              Icons.local_shipping_outlined,
+              color: AppColors.aksenTeks,
+              size: AppUkuran.ikon,
+            ),
+            Positioned(
+              top: AppUkuran.garis,
+              right: AppUkuran.garis,
+              child: Container(
+                width: AppUkuran.titikStatus,
+                height: AppUkuran.titikStatus,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: warnaTitik,
+                  border: Border.all(color: AppColors.permukaan),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class LegendaPeta extends StatelessWidget {
   const LegendaPeta({super.key});
   @override
@@ -324,18 +356,26 @@ class LegendaPeta extends StatelessWidget {
     spacing: AppSpace.s16,
     runSpacing: AppSpace.s8,
     children: [
-      for (final item in [
-        ('Muat', AppColors.aksenTeks),
-        ('Bongkar', AppColors.info),
-        ('Rute resmi', AppColors.info),
-        ('Jejak sesi', AppColors.teks),
+      for (final (label, warna, ikon) in [
+        (
+          'Muat · ${DummyData.titikMuat.nama}',
+          AppColors.sukses,
+          Icons.location_on_rounded,
+        ),
+        (
+          'Bongkar · ${DummyData.titikBongkar.nama}',
+          AppColors.titikBongkar,
+          Icons.location_on_rounded,
+        ),
+        ('Rute simulasi', AppColors.info, Icons.circle),
+        ('Jejak sesi', AppColors.teks, Icons.circle),
       ])
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.circle, size: AppUkuran.simbolLegenda, color: item.$2),
+            Icon(ikon, size: AppUkuran.simbolLegenda, color: warna),
             const SizedBox(width: AppSpace.s4),
-            Text(item.$1, style: AppText.mikro),
+            Flexible(child: Text(label, style: AppText.mikro)),
           ],
         ),
     ],

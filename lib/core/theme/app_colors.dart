@@ -52,6 +52,7 @@ abstract final class AppColors {
   // Peta
   static const Color isiAreaMuat = Color(0x40F5B301); // aksen 25%
   static const Color isiAreaBongkar = Color(0x241D4ED8); // info 14%
+  static const Color titikBongkar = Color(0xFF6E45A7);
   static const Color isiAkurasi = Color(0x26F5B301); // aksen 15%
   static const Color jejak = Color(0xB315191E); // teks 70%
   static const Color ruteDasar = Color(0xFFFFFFFF);

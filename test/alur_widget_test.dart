@@ -95,8 +95,8 @@ void main() {
         await ketuk(t, 'Scan QR · simulasi DT-07');
         expect(find.byType(LayarBeranda), findsOneWidget);
         await ketuk(t, 'Ganti');
-        await ketuk(t, 'DT-11');
-        expect(s.truk!.nomor, 'DT-11');
+        await ketuk(t, 'DT-03');
+        expect(s.truk!.nomor, 'DT-03');
         await ketuk(t, 'Mulai');
         expect(find.byType(LayarSesi), findsOneWidget);
         final id = s.sesi!.sessionId;

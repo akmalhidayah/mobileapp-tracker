@@ -100,9 +100,10 @@ sampai ACK/reset. Tidak ada klaim antrean tujuh hari atau recovery process death
 
 ## Peta dan acuan
 
-Koordinat sekitar `(-4.80, 119.60)`, Crusher/muat dan Stockpile/bongkar adalah
-fixture, bukan pemetaan tambang terverifikasi. Jarak tujuan adalah garis lurus.
-Peta tidak memiliki timer tracking sendiri.
+Simulasi mengikuti rute dashboard dari Limestone Crusher 2 ke Biringkassi
+berdasarkan data jalan OpenStreetMap dan hasil mapping kedua pin. Sambungan
+dari jalan ke pin dan batas area untuk menghitung ritase adalah ilustrasi.
+Jarak tujuan diukur secara garis lurus dari posisi truk simulasi ke pin tujuan.
 
 URL tile terpusat di `KonfigurasiPeta`, default HTTPS OpenStreetMap. Atribusi
 terbaca di peta. App ID native diberikan melalui `userAgentPackageName`;

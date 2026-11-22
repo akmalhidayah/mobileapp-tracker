@@ -27,24 +27,6 @@ abstract final class DummyData {
         kapasitasTon: 30,
         vendorId: 'topabiring',
       ),
-      Truk(
-        nomor: 'DT-11',
-        jenis: 'Dump truck',
-        kapasitasTon: 30,
-        vendorId: 'topabiring',
-      ),
-      Truk(
-        nomor: 'DT-15',
-        jenis: 'Dump truck',
-        kapasitasTon: 30,
-        vendorId: 'topabiring',
-      ),
-      Truk(
-        nomor: 'DT-21',
-        jenis: 'Dump truck',
-        kapasitasTon: 30,
-        vendorId: 'topabiring',
-      ),
     ],
   );
 
@@ -61,42 +43,6 @@ abstract final class DummyData {
       ),
       Truk(
         nomor: 'DT-32',
-        jenis: 'Dump truck',
-        kapasitasTon: 30,
-        vendorId: 'fajar',
-      ),
-      Truk(
-        nomor: 'DT-34',
-        jenis: 'Dump truck',
-        kapasitasTon: 30,
-        vendorId: 'fajar',
-      ),
-      Truk(
-        nomor: 'DT-36',
-        jenis: 'Dump truck',
-        kapasitasTon: 30,
-        vendorId: 'fajar',
-      ),
-      Truk(
-        nomor: 'DT-38',
-        jenis: 'Dump truck',
-        kapasitasTon: 30,
-        vendorId: 'fajar',
-      ),
-      Truk(
-        nomor: 'DT-40',
-        jenis: 'Dump truck',
-        kapasitasTon: 30,
-        vendorId: 'fajar',
-      ),
-      Truk(
-        nomor: 'DT-42',
-        jenis: 'Dump truck',
-        kapasitasTon: 30,
-        vendorId: 'fajar',
-      ),
-      Truk(
-        nomor: 'DT-45',
         jenis: 'Dump truck',
         kapasitasTon: 30,
         vendorId: 'fajar',
@@ -121,18 +67,6 @@ abstract final class DummyData {
         kapasitasTon: 30,
         vendorId: 'koperasi',
       ),
-      Truk(
-        nomor: 'DT-55',
-        jenis: 'Dump truck',
-        kapasitasTon: 30,
-        vendorId: 'koperasi',
-      ),
-      Truk(
-        nomor: 'DT-58',
-        jenis: 'Dump truck',
-        kapasitasTon: 30,
-        vendorId: 'koperasi',
-      ),
     ],
   );
 
@@ -153,23 +87,25 @@ abstract final class DummyData {
         kapasitasTon: 30,
         vendorId: 'prima_karya',
       ),
+    ],
+  );
+
+  static const Vendor tambahan = Vendor(
+    id: 'tambahan',
+    nama: 'Armada Tambahan',
+    namaSingkat: 'Armada Tambahan',
+    daftarTruk: [
       Truk(
-        nomor: 'DT-66',
+        nomor: 'DT-91',
         jenis: 'Dump truck',
         kapasitasTon: 30,
-        vendorId: 'prima_karya',
+        vendorId: 'tambahan',
       ),
       Truk(
-        nomor: 'DT-68',
+        nomor: 'DT-92',
         jenis: 'Dump truck',
         kapasitasTon: 30,
-        vendorId: 'prima_karya',
-      ),
-      Truk(
-        nomor: 'DT-69',
-        jenis: 'Dump truck',
-        kapasitasTon: 30,
-        vendorId: 'prima_karya',
+        vendorId: 'tambahan',
       ),
     ],
   );
@@ -179,6 +115,7 @@ abstract final class DummyData {
     fajar,
     koperasi,
     primaKarya,
+    tambahan,
   ];
 
   /// Semua truk dari semua vendor.
@@ -193,6 +130,7 @@ abstract final class DummyData {
     Supir(nama: 'Hasan', noHp: '081234567891', vendor: fajar),
     Supir(nama: 'Yusuf', noHp: '081234567892', vendor: koperasi),
     Supir(nama: 'Andi', noHp: '081234567893', vendor: primaKarya),
+    Supir(nama: 'Dedi', noHp: '081234567894', vendor: tambahan),
   ];
 
   /// Keadaan awal layar Cek kesiapan HP.
@@ -204,61 +142,72 @@ abstract final class DummyData {
     PengaturanHp.gps: true,
   };
 
-  // KOORDINAT CONTOH — ganti dengan koordinat area tambang asli
-  static const AreaKerja areaMuat = AreaKerja(
-    nama: 'Crusher',
+  static const _posisiMuat = LatLng(-4.7835447437522305, 119.62012886932237);
+  static const _posisiBongkar = LatLng(-4.818083399198741, 119.49784845111566);
+
+  // Pin hasil mapping yang juga menjadi ujung rute simulasi.
+  static const titikMuat = (nama: 'Limestone Crusher 2', posisi: _posisiMuat);
+  static const titikBongkar = (nama: 'Biringkassi', posisi: _posisiBongkar);
+
+  static final areaMuat = AreaKerja(
+    nama: titikMuat.nama,
     jenis: JenisArea.muat,
-    // Di simulasi satu siklus hanya ±75 detik, jadi batasnya 4 detik.
-    // Di lapangan nilainya dalam hitungan menit.
-    durasiMinimum: Duration(seconds: 4),
-    poligon: [
-      LatLng(-4.7988, 119.5987),
-      LatLng(-4.7989, 119.6013),
-      LatLng(-4.8012, 119.6014),
-      LatLng(-4.8011, 119.5986),
-    ],
+    durasiMinimum: const Duration(seconds: 4),
+    poligon: _poligonSimulasi(_posisiMuat),
   );
 
-  // KOORDINAT CONTOH — ganti dengan koordinat area tambang asli
-  static const AreaKerja areaBongkar = AreaKerja(
-    nama: 'Stockpile',
+  static final areaBongkar = AreaKerja(
+    nama: titikBongkar.nama,
     jenis: JenisArea.bongkar,
-    durasiMinimum: Duration(seconds: 4),
-    poligon: [
-      LatLng(-4.8138, 119.6147),
-      LatLng(-4.8139, 119.6174),
-      LatLng(-4.8163, 119.6173),
-      LatLng(-4.8162, 119.6146),
-    ],
+    durasiMinimum: const Duration(seconds: 4),
+    poligon: _poligonSimulasi(_posisiBongkar),
   );
 
-  // KOORDINAT CONTOH — ganti dengan koordinat area tambang asli
+  // Kotak ilustrasi di sekitar pin agar ritase simulasi dapat dihitung.
+  static List<LatLng> _poligonSimulasi(LatLng pusat) {
+    const setengahSisi = 0.00075;
+    final lat = pusat.latitude;
+    final lon = pusat.longitude;
+    return List.unmodifiable([
+      LatLng(lat - setengahSisi, lon - setengahSisi),
+      LatLng(lat - setengahSisi, lon + setengahSisi),
+      LatLng(lat + setengahSisi, lon + setengahSisi),
+      LatLng(lat + setengahSisi, lon - setengahSisi),
+    ]);
+  }
+
+  // Rute demo sama dengan dashboard (OSRM/FOSSGIS, data OpenStreetMap).
+  // Segmen pendek dari jalan ke pin adalah ilustrasi.
   static const Rute ruteHauling = Rute(
-    nama: 'Hauling utama',
+    nama: 'Limestone Crusher 2 – Biringkassi',
     toleransiMeter: 30,
-    versi: 1,
+    versi: 2,
     garis: [
-      LatLng(-4.80000, 119.60000),
-      LatLng(-4.80060, 119.60090),
-      LatLng(-4.80110, 119.60190),
-      LatLng(-4.80130, 119.60300),
-      LatLng(-4.80120, 119.60420),
-      LatLng(-4.80140, 119.60540),
-      LatLng(-4.80210, 119.60640),
-      LatLng(-4.80320, 119.60710),
-      LatLng(-4.80440, 119.60750),
-      LatLng(-4.80560, 119.60770),
-      LatLng(-4.80680, 119.60810),
-      LatLng(-4.80780, 119.60890),
-      LatLng(-4.80850, 119.61000),
-      LatLng(-4.80900, 119.61120),
-      LatLng(-4.80960, 119.61230),
-      LatLng(-4.81050, 119.61320),
-      LatLng(-4.81160, 119.61390),
-      LatLng(-4.81270, 119.61450),
-      LatLng(-4.81370, 119.61520),
-      LatLng(-4.81450, 119.61570),
-      LatLng(-4.81500, 119.61600),
+      _posisiMuat,
+      LatLng(-4.787019, 119.619387),
+      LatLng(-4.787206, 119.618777),
+      LatLng(-4.788369, 119.618620),
+      LatLng(-4.787516, 119.617588),
+      LatLng(-4.787467, 119.615357),
+      LatLng(-4.788838, 119.615167),
+      LatLng(-4.789808, 119.611832),
+      LatLng(-4.799642, 119.607357),
+      LatLng(-4.800599, 119.606003),
+      LatLng(-4.802312, 119.597268),
+      LatLng(-4.800588, 119.587864),
+      LatLng(-4.801320, 119.580551),
+      LatLng(-4.806854, 119.573131),
+      LatLng(-4.809870, 119.557159),
+      LatLng(-4.812198, 119.553396),
+      LatLng(-4.813123, 119.549421),
+      LatLng(-4.814974, 119.545397),
+      LatLng(-4.813215, 119.540819),
+      LatLng(-4.8146665, 119.5221265),
+      LatLng(-4.816118, 119.503434),
+      LatLng(-4.817203, 119.503368),
+      LatLng(-4.817425, 119.499013),
+      LatLng(-4.817972, 119.498981),
+      _posisiBongkar,
     ],
   );
 }

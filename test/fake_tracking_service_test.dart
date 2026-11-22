@@ -8,7 +8,6 @@ import 'package:aplikasi_supir/data/models/titik_gps.dart';
 import 'package:aplikasi_supir/data/services/fake_tracking_service.dart';
 import 'package:aplikasi_supir/data/services/mesin_ritase.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:latlong2/latlong.dart';
 
 void main() {
   final awal = DateTime.utc(2026, 11, 17);
@@ -202,7 +201,7 @@ void main() {
       maju(s, 2);
       await s.selesai();
       final id = s.snapshot.sessionId;
-      await s.mulai(nomorTruk: 'DT-11');
+      await s.mulai(nomorTruk: 'DT-03');
       expect(s.snapshot.sessionId, isNot(id));
       expect(s.snapshot.posisi!.seq, 0);
       expect(s.riwayat.single.belumTerkirim, 3);
@@ -219,7 +218,7 @@ void main() {
       final s = buat();
       await s.mulai(nomorTruk: 'DT-07');
       final id = s.snapshot.sessionId;
-      await s.mulai(nomorTruk: 'DT-11');
+      await s.mulai(nomorTruk: 'DT-03');
       expect(s.snapshot.sessionId, id);
       expect(s.snapshot.nomorTruk, 'DT-07');
       await Future.wait([s.selesai(), s.selesai()]);
@@ -257,7 +256,7 @@ void main() {
     await s.mulai(nomorTruk: 'DT-07');
     final f = s.kirimSekarang();
     await s.reset();
-    await s.mulai(nomorTruk: 'DT-11');
+    await s.mulai(nomorTruk: 'DT-03');
     c.complete(batch.map((t) => t.id).toSet());
     await f;
     expect(s.snapshot.belumTerkirim, 1);
@@ -278,9 +277,10 @@ void main() {
   });
 
   group('MesinRitase', () {
-    const muat = LatLng(-4.8000, 119.6000),
-        jalan = LatLng(-4.8068, 119.6081),
-        bongkar = LatLng(-4.8150, 119.6160);
+    final rute = DummyData.ruteHauling.garis;
+    final muat = rute.first,
+        jalan = rute[rute.length ~/ 2],
+        bongkar = rute.last;
     MesinRitase mesin({Duration? minimum}) => MesinRitase(
       areaMuat: minimum == null
           ? DummyData.areaMuat
