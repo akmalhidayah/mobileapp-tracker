@@ -105,6 +105,11 @@ berdasarkan data jalan OpenStreetMap dan hasil mapping kedua pin. Sambungan
 dari jalan ke pin dan batas area untuk menghitung ritase adalah ilustrasi.
 Jarak tujuan diukur secara garis lurus dari posisi truk simulasi ke pin tujuan.
 
+Ketuk **Perbesar peta** pada sesi aktif untuk membuka peta interaktif. Di layar
+itu tersedia **Ikuti saya**, **Lihat seluruh rute**, serta ikon lapisan untuk
+beralih dari warna lembut ke detail asli. **Legenda** di kanan bawah menjelaskan
+warna titik status dan simbol peta.
+
 URL tile terpusat di `KonfigurasiPeta`, default HTTPS OpenStreetMap. Atribusi
 terbaca di peta. App ID native diberikan melalui `userAgentPackageName`;
 browser menggunakan header browser dan Referer, bukan klaim header kustom.

@@ -4,7 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../core/widgets/komponen.dart';
 import '../../data/dummy/dummy_data.dart';
 import '../../data/models/status_perjalanan.dart';
-import '../peta/peta_sesi.dart';
+import '../peta/kontrol_peta.dart';
 import '../sesi_aktif/layar_sesi.dart';
 
 class LayarGaleri extends StatelessWidget {

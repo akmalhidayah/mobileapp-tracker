@@ -16,7 +16,7 @@ pad_icon() {
   local content_size="$1" canvas_size="$2" output="$3"
   resize_icon "$content_size" "$output"
   sips --padToHeightWidth "$canvas_size" "$canvas_size" \
-    --padColor 10151B "$output" >/dev/null
+    --padColor FFFFFF "$output" >/dev/null
 }
 
 for spec in mdpi:48:108:72 hdpi:72:162:108 xhdpi:96:216:144 xxhdpi:144:324:216 xxxhdpi:192:432:288; do

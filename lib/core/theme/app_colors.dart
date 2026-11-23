@@ -56,6 +56,18 @@ abstract final class AppColors {
   static const Color isiAkurasi = Color(0x26F5B301); // aksen 15%
   static const Color jejak = Color(0xB315191E); // teks 70%
   static const Color ruteDasar = Color(0xFFFFFFFF);
+  static const Color ruteGaris = Color(0xFF24477B);
+  static const Color kreditPeta = Color(0xF2FFFFFF);
+
+  // Palet contoh mengikuti warna ekspeditur di dashboard admin.
+  static Color warnaTrukPeta(String? vendorId) => switch (vendorId) {
+    'fajar' => const Color(0xFF1754B1),
+    'koperasi' => const Color(0xFF056C65),
+    'topabiring' => const Color(0xFF743AA5),
+    'prima_karya' => const Color(0xFF96420D),
+    'tambahan' => const Color(0xFF9C3059),
+    _ => aksenTeks,
+  };
 
   /// Tirai di belakang dialog dan bottom sheet.
   static const Color tirai = Color(0x8015191E);

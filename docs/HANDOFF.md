@@ -136,7 +136,7 @@ Panduan menjalankan dan skenario uji terdapat di README.
 
 ## Ikon Android dan web
 
-- Ikon Flutter diganti dari gambar `icon.png` pengguna. Master disimpan dalam
+- Ikon Flutter memakai gambar `icontrackerapp.png` pengguna. Master disimpan dalam
   proyek, lengkap dengan skrip pembentukan ukuran tanpa dependensi baru.
 - Android memakai mipmap legacy dan adaptive icon untuk API 26+; roundIcon
   menunjuk sumber yang sama. Web memakai favicon, Apple touch icon, dan

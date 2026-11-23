@@ -2,7 +2,7 @@
 
 ## Ikon aplikasi dan favicon
 
-- Sumber pengguna: `../icon.png`; salinan master di `assets/branding/app_icon.png`.
+- Sumber pengguna: `../icontrackerapp.png`; salinan master di `assets/branding/app_icon.png`.
 - Gambar asli diperkecil dengan `sips`, tanpa menggambar ulang logo.
 - Android: ikon legacy 48/72/96/144/192 px dan lapisan adaptive 108/162/216/324/432 px.
 - Web: favicon 32 px, Apple touch icon 180 px, ikon instalasi 192/512 px,

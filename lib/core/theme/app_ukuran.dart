@@ -50,12 +50,12 @@ abstract final class AppUkuran {
   static const double lingkaranSelesai = 96;
 
   // Peta
-  static const double petaMini = 220;
+  static const double petaMini = 248;
   static const double penandaTruk = 36;
   static const double garisPenanda = 3;
   static const double kotakPenanda = 88;
   static const double ruteDasar = 8;
-  static const double ruteTengah = 2;
+  static const double ruteTengah = 4;
   static const double jejak = 3;
   static const double areaPoligon = 2;
   static const double simbolLegenda = 16;
