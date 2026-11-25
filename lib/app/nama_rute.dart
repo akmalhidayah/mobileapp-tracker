@@ -8,6 +8,7 @@ abstract final class NamaRute {
   static const String sesi = '/sesi';
   static const String peta = '/peta';
   static const String ringkasan = '/ringkasan';
+  static const String riwayat = '/riwayat';
 
   /// Galeri komponen, hanya tersedia di mode debug.
   static const String galeri = '/galeri';
@@ -23,5 +24,6 @@ abstract final class NamaRute {
     sesi,
     peta,
     ringkasan,
+    riwayat,
   ];
 }

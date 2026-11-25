@@ -5,6 +5,7 @@ project_dir="$(cd "$(dirname "$0")/.." && pwd)"
 icon_source="$project_dir/assets/branding/app_icon.png"
 res_dir="$project_dir/android/app/src/main/res"
 web_dir="$project_dir/web"
+ios_icon_dir="$project_dir/ios/Runner/Assets.xcassets/AppIcon.appiconset"
 
 resize_icon() {
   local size="$1" output="$2"
@@ -31,4 +32,17 @@ for size in 192 512; do
   resize_icon "$size" "$web_dir/icons/Icon-$size.png"
   pad_icon "$((size * 4 / 5))" "$size" "$web_dir/icons/Icon-maskable-$size.png"
 done
+
+if [[ -f "$ios_icon_dir/Contents.json" ]]; then
+  for spec in 20x20@1x:20 20x20@2x:40 20x20@3x:60 \
+    29x29@1x:29 29x29@2x:58 29x29@3x:87 \
+    40x40@1x:40 40x40@2x:80 40x40@3x:120 \
+    60x60@2x:120 60x60@3x:180 76x76@1x:76 76x76@2x:152 \
+    83.5x83.5@2x:167 1024x1024@1x:1024; do
+    IFS=: read -r slot size <<< "$spec"
+    resize_icon "$size" "$ios_icon_dir/Icon-App-$slot.png"
+  done
+  echo 'Ikon iOS selesai dibuat.'
+fi
+
 echo 'Ikon Android, favicon, Apple touch icon, dan ikon web selesai dibuat.'

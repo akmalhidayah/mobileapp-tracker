@@ -140,9 +140,27 @@ class _LayarPersetujuanState extends State<LayarPersetujuan> {
     }
   }
 
-  void _tolak() {
-    if (AppScope.baca(context).keluar()) {
+  Future<void> _tolak() async {
+    final state = AppScope.baca(context);
+    final berhasil = await state.keluar();
+    if (!mounted) return;
+    if (berhasil) {
       buka(context, NamaRute.awal, ganti: true);
+    } else if (state.pesanAkun case final pesan?) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(pesan)));
+    }
+  }
+
+  Future<void> _setujui() async {
+    final state = AppScope.baca(context);
+    final berhasil = await state.setuju();
+    if (!mounted) return;
+    if (berhasil || !state.sudahMasuk) {
+      buka(context, state.ruteSemestinya, ganti: true);
+    } else if (state.pesanAkun case final pesan?) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(pesan)));
     }
   }
 
@@ -162,22 +180,22 @@ class _LayarPersetujuanState extends State<LayarPersetujuan> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        KotakCentang(
-          nilai: setuju,
-          teks:
-              'Saya memahami dan menyetujui penggunaan data selama sesi kerja.',
-          onChanged: (v) => setState(() => setuju = v),
+        Material(
+          type: MaterialType.transparency,
+          child: KotakCentang(
+            nilai: setuju,
+            teks: 'Saya memahami dan menyetujui penggunaan data selama sesi kerja.',
+            onChanged: (v) => setState(() => setuju = v),
+          ),
         ),
         Tombol(
           'Setuju dan lanjut',
-          onTap: setuju
-              ? () {
-                  AppScope.baca(context).setuju();
-                  buka(context, NamaRute.kesiapan, ganti: true);
-                }
-              : null,
+          onTap: setuju && !AppScope.of(context).akunSibuk ? _setujui : null,
         ),
-        TextButton(onPressed: _tolak, child: const Text('Tidak setuju')),
+        TextButton(
+          onPressed: AppScope.of(context).akunSibuk ? null : _tolak,
+          child: const Text('Tidak setuju'),
+        ),
       ],
     ),
   );

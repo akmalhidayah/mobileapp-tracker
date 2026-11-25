@@ -119,7 +119,9 @@ class LayarKesiapan extends StatelessWidget {
         ),
       ),
     );
-    if (context.mounted && hasil == true) AppScope.baca(context).tandaiSiap(p);
+    if (context.mounted && hasil == true) {
+      await AppScope.baca(context).tandaiSiap(p);
+    }
   }
 
   Widget _tombolLanjut(BuildContext context, bool siap, bool adaTruk) =>
@@ -335,11 +337,14 @@ class _KartuPengaturan extends StatelessWidget {
                     ),
                   ],
                 )
-              : SizedBox(
-                  height: 116,
+              : ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 116),
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [_ikon(), const Spacer(), _label()],
+                    spacing: AppSpace.s8,
+                    children: [_ikon(), _label()],
                   ),
                 ),
         ),

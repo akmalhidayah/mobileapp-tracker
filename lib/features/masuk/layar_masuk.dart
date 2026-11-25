@@ -1,7 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 
 import '../../app/app_scope.dart';
-import '../../app/nama_rute.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
 import '../../core/theme/app_space.dart';
@@ -28,12 +27,15 @@ class _FormMasukState extends State<FormMasuk> {
     super.dispose();
   }
 
-  void _masuk() {
+  Future<void> _masuk() async {
     if (!_form.currentState!.validate()) return;
-    if (AppScope.baca(context).masuk(noHp: _hp.text, pin: _pin.text)) {
+    final state = AppScope.baca(context);
+    final berhasil = await state.masuk(noHp: _hp.text, pin: _pin.text);
+    if (!mounted) return;
+    if (berhasil) {
       _pin.clear();
       FocusScope.of(context).unfocus();
-      buka(context, NamaRute.persetujuan, ganti: true);
+      buka(context, state.ruteSemestinya, ganti: true);
     }
   }
 
@@ -79,110 +81,125 @@ class _FormMasukState extends State<FormMasuk> {
     ),
   );
   @override
-  Widget build(BuildContext context) => AnimatedPadding(
-    duration: MediaQuery.disableAnimationsOf(context)
-        ? Duration.zero
-        : const Duration(milliseconds: 200),
-    curve: Curves.easeOut,
-    padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-    child: SingleChildScrollView(
-      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      padding: const EdgeInsets.fromLTRB(
-        AppSpace.s24,
-        AppSpace.s8,
-        AppSpace.s24,
-        AppSpace.s24,
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'SELAMAT DATANG KEMBALI',
-                    style: AppText.penanda.copyWith(color: AppColors.aksenTeks),
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'Tutup login',
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close_rounded),
-                ),
-              ],
-            ),
-            Text('Siap memulai perjalanan?', style: AppText.judul),
-            const SizedBox(height: AppSpace.s8),
-            Text('Masuk dengan nomor HP dan PIN Anda.', style: AppText.kecil),
-            const SizedBox(height: AppSpace.s24),
-            Form(
-              key: _form,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+  Widget build(BuildContext context) {
+    final state = AppScope.of(context);
+    return AnimatedPadding(
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: const EdgeInsets.fromLTRB(
+          AppSpace.s24,
+          AppSpace.s8,
+          AppSpace.s24,
+          AppSpace.s24,
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
                 children: [
-                  _kolom('Nomor HP', Icons.phone_outlined, _hp, false, (v) {
-                    if (!AppState.hpValid(v ?? '')) {
-                      return 'Masukkan nomor HP 10–15 digit.';
-                    }
-                    return AppState.cariAkun(v!) == null
-                        ? 'Nomor HP belum terdaftar. Hubungi admin vendor.'
-                        : null;
-                  }),
-                  _kolom(
-                    'PIN 6 digit',
-                    Icons.lock_outline,
-                    _pin,
-                    true,
-                    (v) => AppState.pinValid(v ?? '')
-                        ? null
-                        : 'PIN harus tepat 6 digit angka.',
-                  ),
-                  const SizedBox(height: AppSpace.s4),
-                  FilledButton(
-                    onPressed: _masuk,
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, AppUkuran.tombol),
-                      padding: const EdgeInsets.all(AppSpace.s16),
-                      backgroundColor: AppColors.oranyeMasuk,
-                      foregroundColor: AppColors.teks,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: AppRadius.brChip,
+                  Expanded(
+                    child: Text(
+                      'SELAMAT DATANG KEMBALI',
+                      style: AppText.penanda.copyWith(
+                        color: AppColors.aksenTeks,
                       ),
-                      textStyle: AppText.tombol,
                     ),
-                    child: const Text('Masuk'),
+                  ),
+                  IconButton(
+                    tooltip: 'Tutup login',
+                    onPressed: state.akunSibuk
+                        ? null
+                        : () => Navigator.pop(context),
+                    icon: const Icon(Icons.close_rounded),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: AppSpace.s20),
-            Text(
-              'AKUN DEMO · ketuk untuk mengisi nomor',
-              style: AppText.penanda,
-            ),
-            const SizedBox(height: AppSpace.s8),
-            for (final akun in DummyData.akunSupir)
-              _BarisAkunDemo(
-                akun: akun,
-                onTap: () => setState(() => _hp.text = akun.noHp),
+              Text('Siap memulai perjalanan?', style: AppText.judul),
+              const SizedBox(height: AppSpace.s8),
+              Text('Masuk dengan nomor HP dan PIN Anda.', style: AppText.kecil),
+              const SizedBox(height: AppSpace.s24),
+              if (!state.loginTersedia)
+                const BannerPeringatan(
+                  'Server login belum dikonfigurasi. Hubungi admin.',
+                )
+              else
+                Form(
+                  key: _form,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _kolom('Nomor HP', Icons.phone_outlined, _hp, false, (v) {
+                        if (!AppState.hpValid(v ?? '')) {
+                          return 'Masukkan nomor HP 10–15 digit.';
+                        }
+                        return null;
+                      }),
+                      _kolom(
+                        'PIN 6 digit',
+                        Icons.lock_outline,
+                        _pin,
+                        true,
+                        (v) => AppState.pinValid(v ?? '')
+                            ? null
+                            : 'PIN harus tepat 6 digit angka.',
+                      ),
+                      if (state.pesanAkun case final pesan?)
+                        BannerPeringatan(pesan),
+                      const SizedBox(height: AppSpace.s4),
+                      FilledButton(
+                        onPressed: state.akunSibuk ? null : _masuk,
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(0, AppUkuran.tombol),
+                          padding: const EdgeInsets.all(AppSpace.s16),
+                          backgroundColor: AppColors.oranyeMasuk,
+                          foregroundColor: AppColors.teks,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: AppRadius.brChip,
+                          ),
+                          textStyle: AppText.tombol,
+                        ),
+                        child: Text(
+                          state.akunSibuk ? 'Memeriksa akun…' : 'Masuk',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              if (state.loginDemo) ...[
+                const SizedBox(height: AppSpace.s20),
+                Text(
+                  'AKUN DEMO · ketuk untuk mengisi nomor',
+                  style: AppText.penanda,
+                ),
+                const SizedBox(height: AppSpace.s8),
+                for (final akun in DummyData.akunSupir)
+                  _BarisAkunDemo(akun: akun, onTap: () => _hp.text = akun.noHp),
+                Text('PIN demo 123456', style: AppText.mikro),
+              ],
+              const SizedBox(height: AppSpace.s16),
+              Text(
+                'Lupa PIN? Hubungi admin perusahaan.',
+                textAlign: TextAlign.center,
+                style: AppText.kecil,
               ),
-            Text('PIN bebas, asalkan 6 digit angka.', style: AppText.mikro),
-            const SizedBox(height: AppSpace.s16),
-            Text(
-              'Lupa PIN? Hubungi admin perusahaan.',
-              textAlign: TextAlign.center,
-              style: AppText.kecil,
-            ),
-            const SizedBox(height: AppSpace.s16),
-            const IndikatorDemo(),
-          ],
+              if (state.loginDemo) ...[
+                const SizedBox(height: AppSpace.s16),
+                const IndikatorDemo(),
+              ],
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _BarisAkunDemo extends StatelessWidget {

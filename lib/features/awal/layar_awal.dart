@@ -30,7 +30,9 @@ class _LayarAwalState extends State<LayarAwal> {
     super.initState();
     if (widget.bukaLogin) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _bukaLogin();
+        if (mounted && ModalRoute.of(context)?.isCurrent == true) {
+          _bukaLogin();
+        }
       });
     }
   }

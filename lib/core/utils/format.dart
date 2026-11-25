@@ -55,8 +55,12 @@ String formatKecepatan(double meterPerDetik) =>
 String formatJam(DateTime waktu) =>
     '${_duaDigit(waktu.hour)}.${_duaDigit(waktu.minute)}';
 
-/// Tanggal dan jam setempat, misalnya "18 November 2026, 13.33".
-String formatTanggalJam(DateTime waktu) {
+/// Komponen tanggal dan jam WITA (UTC+8), siap diformat tanpa konversi lokal.
+DateTime waktuWita(DateTime waktu) =>
+    waktu.toUtc().add(const Duration(hours: 8));
+
+/// Tanggal gaya Indonesia, misalnya "18 November 2026".
+String formatTanggal(DateTime waktu) {
   const bulan = [
     'Januari',
     'Februari',
@@ -71,7 +75,11 @@ String formatTanggalJam(DateTime waktu) {
     'November',
     'Desember',
   ];
-  final lokal = waktu.toLocal();
-  return '${lokal.day} ${bulan[lokal.month - 1]} ${lokal.year}, '
-      '${formatJam(lokal)}';
+  return '${waktu.day} ${bulan[waktu.month - 1]} ${waktu.year}';
+}
+
+/// Tanggal dan jam WITA, misalnya "18 November 2026, 13.33 WITA".
+String formatTanggalJam(DateTime waktu) {
+  final wita = waktuWita(waktu);
+  return '${formatTanggal(wita)}, ${formatJam(wita)} WITA';
 }

@@ -181,7 +181,10 @@ class HeaderSesi extends StatelessWidget {
   final SnapshotSesi snapshot;
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(AppSpace.s20),
+    padding: const EdgeInsets.symmetric(
+      horizontal: AppSpace.s20,
+      vertical: AppSpace.s12,
+    ),
     decoration: const BoxDecoration(
       borderRadius: AppRadius.brKartuBesar,
       gradient: LinearGradient(
@@ -219,7 +222,7 @@ class HeaderSesi extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: AppSpace.s16),
+        const SizedBox(height: AppSpace.s8),
         Row(
           children: [
             Expanded(
@@ -232,7 +235,7 @@ class HeaderSesi extends StatelessWidget {
                       color: AppColors.teksTerbalikSekunder,
                     ),
                   ),
-                  const SizedBox(height: AppSpace.s8),
+                  const SizedBox(height: AppSpace.s4),
                   FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
@@ -253,7 +256,7 @@ class HeaderSesi extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: AppSpace.s12),
+        const SizedBox(height: AppSpace.s8),
         Row(
           children: [
             Icon(
@@ -303,6 +306,10 @@ class PanelStatusPerjalanan extends StatelessWidget {
   };
   @override
   Widget build(BuildContext context) => KartuInfo(
+    padding: const EdgeInsets.symmetric(
+      horizontal: AppSpace.s16,
+      vertical: AppSpace.s12,
+    ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -328,11 +335,11 @@ class PanelStatusPerjalanan extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: AppSpace.s8),
+        const SizedBox(height: AppSpace.s4),
         Text(status.nama, style: AppText.subjudul),
         const SizedBox(height: AppSpace.s4),
         Text(status.keterangan, style: AppText.kecil),
-        const SizedBox(height: AppSpace.s20),
+        const SizedBox(height: AppSpace.s12),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -352,7 +359,7 @@ class PanelStatusPerjalanan extends StatelessWidget {
                             ? AppColors.aksenLembut
                             : AppColors.latar,
                       ),
-                      const SizedBox(height: AppSpace.s8),
+                      const SizedBox(height: AppSpace.s4),
                       Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: AppSpace.s4,

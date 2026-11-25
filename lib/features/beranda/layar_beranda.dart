@@ -10,13 +10,51 @@ import '../../core/widgets/komponen.dart';
 
 class LayarBeranda extends StatelessWidget {
   const LayarBeranda({super.key});
+
+  Future<void> _konfirmasiKeluar(BuildContext context) async {
+    final state = AppScope.baca(context);
+    final ya = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: const Text('Yakin ingin keluar?'),
+        content: const Text(
+          'Anda perlu memasukkan nomor HP dan PIN untuk masuk kembali.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialog, false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialog, true),
+            child: const Text('Ya, keluar'),
+          ),
+        ],
+      ),
+    );
+    if (ya != true || !context.mounted) return;
+    final berhasil = await state.keluar();
+    if (berhasil && context.mounted) {
+      buka(context, NamaRute.masuk, ganti: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = AppScope.of(context);
+    final adaRingkasan = s.ringkasanTerakhir != null;
     return Layar(
-      judul: 'Tracker Truk',
       logo: true,
       tampilkanIndikatorDemo: false,
+      aksiKiri: TextButton.icon(
+        onPressed: s.akunSibuk ? null : () => _konfirmasiKeluar(context),
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.aksenTeks,
+          minimumSize: const Size(0, AppUkuran.targetSentuh),
+        ),
+        icon: const Icon(Icons.logout_rounded, size: AppUkuran.ikonKecil),
+        label: const Text('Keluar'),
+      ),
       children: [
         Text('Halo, ${s.supir!.nama}', style: AppText.judul),
         const SizedBox(height: AppSpace.s8),
@@ -27,7 +65,35 @@ class LayarBeranda extends StatelessWidget {
           namaVendor: s.supir!.vendor.namaSingkat,
           onGanti: () => buka(context, NamaRute.pilihTruk),
         ),
-        ChipKesiapan(siap: s.semuaSiap, jumlah: s.jumlahSiap),
+        Row(
+          mainAxisAlignment: adaRingkasan
+              ? MainAxisAlignment.spaceBetween
+              : MainAxisAlignment.center,
+          children: [
+            Flexible(
+              flex: 5,
+              child: ChipKesiapan(siap: s.semuaSiap, jumlah: s.jumlahSiap),
+            ),
+            if (adaRingkasan) ...[
+              const SizedBox(width: AppSpace.s8),
+              Flexible(
+                flex: 6,
+                child: TextButton(
+                  onPressed: () => buka(context, NamaRute.riwayat),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.aksenTeks,
+                    minimumSize: const Size(0, AppUkuran.targetSentuh),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpace.s8,
+                    ),
+                    textStyle: AppText.kecilTebal,
+                  ),
+                  child: const Text('Riwayat sesi', textAlign: TextAlign.end),
+                ),
+              ),
+            ],
+          ],
+        ),
         if (!s.semuaSiap)
           Tombol(
             'Periksa kesiapan HP',
@@ -60,10 +126,14 @@ class LayarBeranda extends StatelessWidget {
                       if (context.mounted) {
                         if (ok) {
                           buka(context, NamaRute.sesi, ganti: true);
+                        } else if (!s.sudahMasuk ||
+                            !s.sudahSetuju ||
+                            s.truk == null) {
+                          buka(context, s.ruteSemestinya, ganti: true);
                         } else {
                           pesan(
                             context,
-                            'Sesi belum dapat dimulai. Periksa kesiapan HP.',
+                            s.pesanAkun ?? 'Sesi belum dapat dimulai. Periksa kesiapan HP.',
                           );
                         }
                       }
@@ -107,23 +177,7 @@ class LayarBeranda extends StatelessWidget {
           BannerPeringatan(
             '${s.pendingLama} titik sesi sebelumnya belum terkirim. Antrean tetap tersimpan selama demo ini terbuka.',
           ),
-        if (s.ringkasanTerakhir != null)
-          Tombol(
-            'Lihat ringkasan terakhir',
-            sekunder: true,
-            onTap: () => buka(context, NamaRute.ringkasan),
-          ),
-        TextButton.icon(
-          onPressed: () {
-            if (s.keluar()) buka(context, NamaRute.masuk, ganti: true);
-          },
-          style: TextButton.styleFrom(
-            foregroundColor: AppColors.aksenTeks,
-            minimumSize: const Size(0, AppUkuran.targetSentuh),
-          ),
-          icon: const Icon(Icons.logout_rounded, size: AppUkuran.ikonKecil),
-          label: const Text('Keluar'),
-        ),
+        if (s.pesanAkun case final pesan?) BannerPeringatan(pesan),
       ],
     );
   }

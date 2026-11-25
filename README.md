@@ -1,39 +1,59 @@
-# Tracker Truk — aplikasi supir (demo frontend)
+# Tracker Truk — aplikasi supir
 
-Flutter Android dengan preview melalui Chrome. Semua nomor, koordinat, ritase,
-izin, dan pengiriman adalah simulasi. Tidak ada backend, autentikasi nyata,
-GPS native/background, kamera QR, notifikasi native, atau dashboard web terpisah.
+Flutter Android dan iOS dengan preview melalui Chrome. Login dan penugasan truk
+menggunakan API Django di `web_tracker`. Koordinat, ritase, izin HP, dan pengiriman lokasi masih
+berjalan dalam simulasi.
 
 ## Menjalankan
 
 Lingkungan yang digunakan: Flutter **3.50.0**, Dart **3.14.0**. Gunakan versi
 terkunci `pubspec.lock`; tidak perlu meng-upgrade SDK atau paket.
 
+Jalankan Django di `web_tracker` pada `127.0.0.1:8000`. Dari root aplikasi,
+jalankan preview Chrome pada port yang diizinkan API lokal.
+
 ```sh
 flutter pub get
-flutter run -d chrome
+flutter run -d chrome --web-hostname=127.0.0.1 --web-port=8732
 ```
 
-Jalankan perintah di atas dari root repo ini. Untuk membuka hasil build web
-tanpa menjalankan Flutter terus-menerus:
+Preview debug dan simulator iOS memakai `http://127.0.0.1:8000` secara bawaan.
+Emulator Android memakai `http://10.0.2.2:8000`. Untuk preview statis lokal,
+jalankan kedua perintah berikut, lalu buka `http://127.0.0.1:8732`.
 
 ```sh
-flutter build web --no-wasm-dry-run --no-web-resources-cdn
+flutter build web --debug --no-wasm-dry-run --no-web-resources-cdn
 python3 -m http.server 8732 --bind 127.0.0.1 --directory build/web
 ```
 
-Buka `http://127.0.0.1:8732` di browser. Untuk APK demo jalankan
-`flutter build apk --release`; hasilnya ada di
-`build/app/outputs/flutter-apk/app-release.apk`.
+### iPhone fisik pada Wi-Fi yang sama
 
-Nomor demo: `081234567890`; PIN: `123456`. Semua nomor berformat 10–15 digit
-(setelah separator spasi, +, titik, kurung, dan tanda hubung dibuang) dan PIN
-tepat 6 digit diterima. PIN tidak disimpan di state atau dicetak ke log.
+Di `web_tracker`, jalankan server API lokal sesuai panduan **Uji iPhone lewat Wi-Fi**
+di README dashboard. Di Terminal aplikasi, ganti `ID_IPHONE` dengan ID dari
+`flutter devices`, kemudian jalankan:
+
+```sh
+IP_MAC=$(ipconfig getifaddr en0)
+flutter run -d ID_IPHONE --dart-define="AUTH_API_URL=http://$IP_MAC:8001"
+```
+
+Izinkan **Local Network** jika diminta iPhone. Gunakan akun contoh seperti
+`081234567890` dengan PIN `123456` untuk pengujian HTTP di jaringan lokal.
+Build release untuk HP fisik memakai `--dart-define=AUTH_API_URL=https://alamat-server`.
+Jika alamat release belum dikonfigurasi, form menampilkan pesan pengaturan server.
+
+Daftar nomor lambung berasal dari penugasan di dashboard. Android dan iOS
+menyimpan token login di penyimpanan aman perangkat. Saat aplikasi dibuka
+ulang, Django memeriksa sesi, versi persetujuan, dan nomor lambung terakhir.
+Login berakhir setelah 30 hari tanpa konfirmasi sesi, saat pengguna memilih
+**Keluar**, atau saat aksesnya dicabut. Persetujuan dicatat per akun dan versi
+kebijakan. Untuk menjalankan simulasi akun tanpa Django, gunakan build debug
+dengan `--dart-define=AUTH_DEMO=true`.
 
 1. Masuk, baca empat penjelasan privasi, centang persetujuan.
-2. Pada Kesiapan HP, tekan **Atur → Simulasikan sudah diatur** untuk setiap
+2. Pada Kesiapan HP, ketuk kartu lalu **Simulasikan sudah diatur** untuk setiap
    item yang belum siap. Notifikasi dan GPS awalnya siap.
-3. Pilih truk sesuai vendor akun demo, atau gunakan tombol scan QR simulasi.
+3. Pilih nomor lambung yang tersedia. Tombol scan QR simulasi tersedia pada mode demo lokal.
 4. Di Beranda, tekan **Mulai**. Perekaman dimulai hanya setelah semua syarat
    lolos di state. Ganti truk dan logout diblok selama sesi.
 5. Perbesar peta, geser untuk melepas follow, gunakan **Ikuti saya** atau
@@ -94,9 +114,9 @@ konservatif dan menandai **perlu dicek**. Backend kelak melakukan rekonsiliasi
 lebih lengkap sesuai requirement; muatan tidak diteruskan lintas sesi.
 Empat titik berjarak 30 detik hanya membentang 90 detik, bukan dua menit.
 
-Semua data berada **dalam memori**. Refresh/restart menghapus login, persetujuan,
-sesi dan pending. Logout menghapus persetujuan; antrean runtime tetap ada
-sampai ACK/reset. Tidak ada klaim antrean tujuh hari atau recovery process death.
+Tracking simulasi, riwayat sesi kerja, dan antrean titik berada dalam memori.
+Refresh atau restart dapat menghapus data tersebut. Antrean simulasi tetap
+tersedia selama aplikasi berjalan sampai ACK atau reset.
 
 ## Peta dan acuan
 
@@ -138,7 +158,7 @@ kesamaan ukuran layer Figma belum diverifikasi.
 dart format --output=none --set-exit-if-changed lib test
 flutter analyze
 flutter test
-flutter build web --no-web-resources-cdn
+flutter build web --debug --no-web-resources-cdn
 ```
 
 Tes menggunakan clock dan pengirim dummy tanpa waktu nyata, tile jaringan,
@@ -167,10 +187,10 @@ Skrip ini disediakan untuk menyiapkan mesin pengembang baru.
 Setelah pemasangan selesai, jalankan sendiri:
 
 ```sh
-flutter build apk --release
+flutter build apk --release --dart-define=AUTH_API_URL=https://alamat-server
 ```
 
-APK demo berada di `build/app/outputs/flutter-apk/app-release.apk`.
+APK berada di `build/app/outputs/flutter-apk/app-release.apk`.
 Build release saat ini memakai signing key debug bawaan template untuk
 instalasi demo; signing distribusi produksi belum dikonfigurasi.
 Gradle dibatasi satu worker dan heap 2 GB agar lebih sesuai laptop RAM 8 GB;
@@ -185,7 +205,7 @@ Rujukan: [Android SDK](https://developer.android.com/tools/sdkmanager),
   MethodChannel/EventChannel ke service Kotlin; layar tetap membaca AppState.
 - Native: izin asli, foreground location service, Room/durable queue, recovery
   proses/reboot, pengaturan merek HP dan uji Doze/perangkat nyata.
-- Backend: token supir, batch/ACK idempoten, konfigurasi interval, data master,
+- Backend: sesi operasional, batch/ACK idempoten, konfigurasi interval,
   aturan ritase resmi, rekonsiliasi kualitas/jeda dan siklus lintas sesi.
 - Putuskan kontrak status/ritase aplikasi supir: respons upload contoh PDF
   baru memberikan ACK/config, belum kontrak lengkap status resmi.

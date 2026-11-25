@@ -1,11 +1,14 @@
 import 'package:aplikasi_supir/app/nama_rute.dart';
-import 'package:aplikasi_supir/core/widgets/komponen.dart';
+import 'package:aplikasi_supir/core/widgets/komponen.dart'
+    show ChipKesiapan, KartuTruk;
 import 'package:aplikasi_supir/data/models/pengaturan_hp.dart';
 import 'package:aplikasi_supir/data/services/fake_tracking_service.dart';
 import 'package:aplikasi_supir/features/awal/layar_awal.dart';
 import 'package:aplikasi_supir/features/beranda/layar_beranda.dart';
+import 'package:aplikasi_supir/features/masuk/layar_masuk.dart';
 import 'package:aplikasi_supir/features/peta/peta_sesi.dart';
 import 'package:aplikasi_supir/features/ringkasan/layar_ringkasan.dart';
+import 'package:aplikasi_supir/features/ringkasan/layar_riwayat_sesi.dart';
 import 'package:aplikasi_supir/features/sesi_aktif/layar_sesi.dart';
 import 'package:aplikasi_supir/main.dart';
 import 'package:aplikasi_supir/state/app_state.dart';
@@ -55,7 +58,7 @@ void main() {
           timerAktif: false,
           pengirim: (b) async => b.map((e) => e.id).toSet(),
         );
-        final s = AppState(layanan: f)..tileGagal = true;
+        final s = AppState(layanan: f, loginDemo: true)..tileGagal = true;
         addTearDown(s.dispose);
         await t.pumpWidget(AplikasiSupir(state: s));
         await t.pumpAndSettle();
@@ -81,19 +84,27 @@ void main() {
         await t.pumpAndSettle();
         await ketuk(t, 'Setuju dan lanjut');
         for (final p in PengaturanHp.values.where((p) => !s.siap(p)).toList()) {
-          final baris = find.ancestor(
-            of: find.text(p.judul),
-            matching: find.byType(BarisCek),
-          );
-          final atur = find.descendant(of: baris, matching: find.text('Atur'));
-          await tampilkan(t, atur);
-          await t.tap(atur);
-          await t.pumpAndSettle();
+          await ketuk(t, p.judul);
           await ketuk(t, 'Simulasikan sudah diatur');
         }
         await ketuk(t, 'Lanjut');
+        final sapaan = find.text('Hai, Rahmat');
+        expect(sapaan, findsOneWidget);
+        expect(
+          t.getTopLeft(sapaan).dy,
+          greaterThan(
+            t.getBottomLeft(find.text('PT. Topabiring Trans Logistik')).dy,
+          ),
+        );
         await ketuk(t, 'Scan QR · simulasi DT-07');
         expect(find.byType(LayarBeranda), findsOneWidget);
+        final header = find.byType(AppBar);
+        final keluar = find.text('Keluar');
+        expect(keluar, findsOneWidget);
+        expect(find.descendant(of: header, matching: keluar), findsOneWidget);
+        expect(t.getCenter(keluar).dx, lessThan(t.getCenter(header).dx));
+        expect(find.text('Tracker Truk'), findsNothing);
+        expect(find.text('PT. Topabiring Trans Logistik'), findsNothing);
         await ketuk(t, 'Ganti');
         await ketuk(t, 'DT-03');
         expect(s.truk!.nomor, 'DT-03');
@@ -145,16 +156,88 @@ void main() {
         await ketuk(t, 'Kembali ke Beranda');
         expect(find.byType(LayarBeranda), findsOneWidget);
         expect(s.pendingLama, greaterThan(0));
+        final ringkasan = find.text('Riwayat sesi');
+        final kesiapan = find.byType(ChipKesiapan);
+        expect(
+          t.getCenter(ringkasan).dx,
+          greaterThan(t.getCenter(kesiapan).dx),
+        );
+        expect(
+          t.getCenter(ringkasan).dy,
+          greaterThan(t.getBottomLeft(find.byType(KartuTruk)).dy),
+        );
+        await ketuk(t, 'Riwayat sesi');
+        expect(find.byType(LayarRiwayatSesi), findsOneWidget);
+        await ketuk(t, 'DT-03');
+        expect(find.byType(LayarRingkasan), findsOneWidget);
+        await t.tap(find.byTooltip('Kembali'));
+        await t.pumpAndSettle();
+        expect(find.byType(LayarRiwayatSesi), findsOneWidget);
+        await t.tap(find.byTooltip('Kembali'));
+        await t.pumpAndSettle();
+        expect(find.byType(LayarBeranda), findsOneWidget);
+        await ketuk(t, 'Keluar');
+        expect(find.text('Yakin ingin keluar?'), findsOneWidget);
+        expect(s.sudahMasuk, isTrue);
+        await ketuk(t, 'Batal');
+        expect(find.byType(AlertDialog), findsNothing);
+        expect(s.sudahMasuk, isTrue);
+        await ketuk(t, 'Keluar');
+        await ketuk(t, 'Ya, keluar');
+        expect(s.sudahMasuk, isFalse);
+        expect(find.byType(FormMasuk), findsOneWidget);
         expect(t.takeException(), isNull);
         await t.pumpWidget(const SizedBox.shrink());
       });
     }
   }
+  testWidgets('riwayat mengelompokkan sesi per tanggal mulai WITA', (t) async {
+    var jam = DateTime.utc(2026, 11, 24, 15, 59);
+    final f = FakeTrackingService(timerAktif: false, jam: () => jam)
+      ..uploadOffline = true;
+    final s = AppState(layanan: f, loginDemo: true);
+    addTearDown(s.dispose);
+    await siapkan(s);
+    expect(await s.mulaiSesi(), isTrue);
+    final idSesiLama = s.sesi!.sessionId;
+    f.lompatKe(const Duration(minutes: 2));
+    await s.selesaiSesi();
+    for (final menit in [5, 10]) {
+      jam = DateTime.utc(2026, 11, 24, 16, menit);
+      expect(await s.mulaiSesi(), isTrue);
+      f.maju();
+      await s.selesaiSesi();
+    }
+    await t.pumpWidget(AplikasiSupir(state: s));
+    await t.pumpAndSettle();
+    await ketuk(t, 'Riwayat sesi');
+    final tanggalTerbaru = find.text('25 November 2026');
+    final tanggalLama = find.text('24 November 2026');
+    expect(tanggalTerbaru, findsOneWidget);
+    expect(tanggalLama, findsOneWidget);
+    expect(
+      t.getTopLeft(tanggalTerbaru).dy,
+      lessThan(t.getTopLeft(tanggalLama).dy),
+    );
+    expect(find.text('2 sesi · 0 ritase'), findsOneWidget);
+    expect(find.text('00.05–00.05 WITA · 0 ret'), findsOneWidget);
+    expect(find.text('00.10–00.10 WITA · 0 ret'), findsOneWidget);
+    const lintasHari = '23.59–25 November 2026, 00.01 WITA · 0 ret';
+    expect(find.text(lintasHari), findsNothing);
+    await ketuk(t, '24 November 2026');
+    await ketuk(t, lintasHari);
+    final detail = t.widget<LayarRingkasan>(find.byType(LayarRingkasan));
+    expect(detail.idSesi, idSesiLama);
+    expect(find.text('24 November 2026, 23.59 WITA'), findsOneWidget);
+    expect(find.text('25 November 2026, 00.01 WITA'), findsOneWidget);
+    expect(t.takeException(), isNull);
+  });
+
   testWidgets('rute langsung dilindungi dan akhir otomatis dari peta', (
     t,
   ) async {
     final f = FakeTrackingService(timerAktif: false)..uploadOffline = true;
-    final s = AppState(layanan: f)..tileGagal = true;
+    final s = AppState(layanan: f, loginDemo: true)..tileGagal = true;
     addTearDown(s.dispose);
     t.platformDispatcher.accessibilityFeaturesTestValue =
         const FakeAccessibilityFeatures(disableAnimations: true);
@@ -164,10 +247,12 @@ void main() {
     Navigator.of(t.element(find.byType(LayarAwal))).pushNamed(NamaRute.peta);
     await t.pumpAndSettle();
     expect(find.text('Nomor HP'), findsOneWidget);
-    siapkan(s);
+    final navigator = Navigator.of(t.element(find.byType(FormMasuk)));
+    navigator.pop();
+    await siapkan(s);
     await s.mulaiSesi();
     await t.pumpAndSettle();
-    Navigator.of(t.element(find.byType(Layar).last)).pushNamed(NamaRute.peta);
+    navigator.pushNamed(NamaRute.peta);
     await t.pumpAndSettle();
     s.lompatKe(const Duration(hours: 16));
     await t.pumpAndSettle();

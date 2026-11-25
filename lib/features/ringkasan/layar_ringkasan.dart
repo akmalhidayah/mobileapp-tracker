@@ -11,28 +11,51 @@ import '../../core/utils/format.dart';
 import '../../core/widgets/komponen.dart';
 
 class LayarRingkasan extends StatelessWidget {
-  const LayarRingkasan({super.key});
+  const LayarRingkasan({super.key, this.idSesi});
+  final String? idSesi;
+
   @override
   Widget build(BuildContext context) {
-    final state = AppScope.of(context), r = state.ringkasanTerakhir!;
+    final state = AppScope.of(context);
+    final dariRiwayat = idSesi != null;
+    final r = dariRiwayat
+        ? state.riwayat.where((sesi) => sesi.sessionId == idSesi).firstOrNull
+        : state.ringkasanTerakhir;
+    if (r == null) {
+      return Layar(
+        judul: 'Ringkasan sesi',
+        kembali: true,
+        children: [Text('Ringkasan sesi tidak tersedia.', style: AppText.isi)],
+      );
+    }
+    final kapasitas = r.truk.kapasitasTon;
+    String tampil(num nilai) =>
+        formatAngka(nilai, desimal: nilai == nilai.round() ? 0 : 2);
     return Layar(
       judul: 'Ringkasan sesi',
+      kembali: dariRiwayat,
       aksi: kDebugMode ? tombolDebug(context) : null,
       children: [
-        const Icon(
-          Icons.check_circle_outline,
-          color: AppColors.sukses,
-          size: AppUkuran.ikonRaksasa,
-        ),
-        const SizedBox(height: AppSpace.s16),
-        Text('Sesi selesai', style: AppText.judul, textAlign: TextAlign.center),
-        const SizedBox(height: AppSpace.s8),
-        Text(
-          'Perekaman lokasi sudah berhenti.',
-          style: AppText.isi,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: AppSpace.s24),
+        if (!dariRiwayat) ...[
+          const Icon(
+            Icons.check_circle_outline,
+            color: AppColors.sukses,
+            size: AppUkuran.ikonRaksasa,
+          ),
+          const SizedBox(height: AppSpace.s16),
+          Text(
+            'Sesi selesai',
+            style: AppText.judul,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpace.s8),
+          Text(
+            'Perekaman lokasi sudah berhenti.',
+            style: AppText.isi,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpace.s24),
+        ],
         if (r.otomatis)
           const BannerPeringatan(
             'Sesi dihentikan otomatis karena mencapai batas 16 jam.',
@@ -51,11 +74,11 @@ class LayarRingkasan extends StatelessWidget {
               BarisRingkasan('Jumlah ritase', '${r.ritase} ret'),
               BarisRingkasan(
                 'Kapasitas truk',
-                '${formatAngka(r.truk.kapasitasTon)} ton/ret',
+                kapasitas == null ? '—' : '${tampil(kapasitas)} ton/ret',
               ),
               BarisRingkasan(
                 'Estimasi muatan',
-                '${formatAngka(r.ritase * r.truk.kapasitasTon)} ton',
+                kapasitas == null ? '—' : '${tampil(r.ritase * kapasitas)} ton',
               ),
             ],
           ),
@@ -66,11 +89,13 @@ class LayarRingkasan extends StatelessWidget {
           'untuk laporan admin.',
           style: AppText.kecil,
         ),
-        const SizedBox(height: AppSpace.s16),
-        Tombol(
-          'Kembali ke Beranda',
-          onTap: () => buka(context, NamaRute.beranda, ganti: true),
-        ),
+        if (!dariRiwayat) ...[
+          const SizedBox(height: AppSpace.s16),
+          Tombol(
+            'Kembali ke Beranda',
+            onTap: () => buka(context, NamaRute.beranda, ganti: true),
+          ),
+        ],
       ],
     );
   }

@@ -2,15 +2,15 @@
 
 Audit proyek dilakukan pada **23 November 2026 (WITA)**. Peta file ada di [CODE_MAP.md](CODE_MAP.md). Panduan kerja ada di [AGENTS.md](AGENTS.md).
 
-Tracker Clinker Tonasa mempunyai dua aplikasi. **Dashboard admin sudah punya autentikasi dan Data Master yang tersimpan. Aplikasi supir sudah mempunyai alur kerja demo dari login sampai ringkasan sesi. Posisi armada, ritase dan laporan di kedua aplikasi belum tersambung ke data operasional yang sama.**
+Tracker Clinker Tonasa mempunyai dua aplikasi. **Admin dan Vendor masuk melalui Django. Aplikasi supir dapat memakai API Django untuk login dan membaca penugasan nomor lambung. Posisi armada, ritase dan laporan masih memakai data simulasi.**
 
 | Area | Sudah ada | Batas saat ini |
 | --- | --- | --- |
-| Login dashboard | Login/logout Django, profil, ganti kata sandi, dan User Panel untuk superuser. Login memakai foto pabrik, dua panel, dan tombol lihat kata sandi. | Akun web tidak sekaligus menjadi akun supir Flutter. Dashboard masih dijalankan secara lokal. |
-| Data Master | Ekspeditur, warna ikon, truk, nomor lambung, kapasitas, dan pengemudi disimpan di SQLite; akses pengelolaan mengikuti izin Django. | Belum ada kontrak untuk mengirim daftar truk, penugasan supir, atau perubahan master ke Flutter. |
+| Login dashboard | Login/logout Django, profil, ganti kata sandi, dan User Panel untuk Admin. Vendor terikat pada satu Ekspeditur aktif. | Dashboard dijalankan secara lokal. |
+| Data Master | Ekspeditur, truk, pengemudi, akun sopir, dan riwayat penugasan disimpan di SQLite. Admin dapat memberi beberapa nomor lambung untuk satu sopir. | API sopir membaca penugasan aktif dan armada aktif pada Ekspeditur sopir. |
 | Monitoring web | Peta besar, ikon warna ekspeditur dan titik status, legenda tetap terlihat, pencarian, filter, daftar armada, detail truk, layar penuh, dan navigasi HP. | Posisi awal berasal dari fixture dan gerak ikon dihitung di browser. Truk baru tanpa fixture dapat muncul tanpa posisi. Tidak ada aliran GPS dari aplikasi supir. |
 | Laporan web | Grafik vertikal dan garis ritase, total armada, tabel per ekspeditur, serta tabel harian horizontal dengan kalender WITA. | Grafik atas tetap cuplikan **17 November 2026 pukul 13.00 WITA**. Tabel harian memakai data **13–17 November 2026** dan memilih hari ini secara default. Pada tanggal tanpa data, kondisi kosong memang diharapkan. |
-| Aplikasi supir | Pembuka dan panel login, persetujuan, cek kesiapan HP, pilihan truk sesuai vendor demo, sesi, peta, pengiriman simulasi, dan laporan sesi. | Nomor HP/PIN, QR, izin, baterai, GPS, dan konfirmasi kirim masih simulasi. Data sesi dan antreannya hilang ketika aplikasi dimulai ulang atau preview direfresh. |
+| Aplikasi supir | Login nomor HP dan PIN lewat API, persetujuan, cek kesiapan HP, pilihan truk sesuai penugasan, sesi, peta, pengiriman simulasi, dan laporan sesi. | Token login, data sesi simulasi, dan antrean berada di memori. QR tersedia pada mode demo lokal. Izin, baterai, GPS, dan konfirmasi kirim masih simulasi. |
 | Rute bersama | Kedua proyek memakai rute demo Limestone Crusher 2 → Biringkassi. Dashboard menampilkan seluruh armada, Flutter menampilkan truk sesi supir. | Geometri disalin di Python dan Dart. Poligon muat/bongkar Flutter adalah ilustrasi untuk simulasi, sehingga belum boleh dipakai sebagai batas area operasional. |
 | Distribusi | Aset ikon baru tersedia untuk dashboard, Flutter web, dan launcher Android. Perintah preview dan build tercatat di README masing-masing. | APK release memakai signing debug. Tidak ada klaim rilis produksi, pelacakan latar sungguhan, atau APK baru dari audit dokumentasi ini. |
 
@@ -21,12 +21,19 @@ Tracker Clinker Tonasa mempunyai dua aplikasi. **Dashboard admin sudah punya aut
 - **Samakan identitas sebelum menyambung data.** Nomor lambung membantu tampilan demo, tetapi integrasi perlu ID stabil untuk ekspeditur, supir, truk, penugasan, dan sesi. Contoh yang harus dibereskan: kode Prima Karya adalah `prima` di fixture dashboard dan `prima_karya` di Flutter.
 - **Pisahkan posisi, status, dan hasil perjalanan.** Posisi terbaru, status operasi, keterlambatan pembaruan, dan ritase adalah hal berbeda. Pergerakan ikon, batas keterlambatan 10 menit di demo, serta durasi tunggu simulator tidak menetapkan aturan produksi.
 
-## Urutan pengerjaan berikutnya
+## Rencana integrasi — 24 November 2026 (WITA)
 
-1. **Tetapkan kontrak data induk dan autentikasi supir.** Putuskan cara verifikasi akun/perangkat, ID ekspeditur dan truk, serta bagaimana admin menetapkan unit yang boleh dipakai supir. Selesai bila daftar unit Flutter berasal dari penugasan admin dan aplikasi menolak pilihan di luar penugasan itu.
-2. **Bangun jalur sesi dan telemetri.** Tetapkan ID sesi, nomor urut titik, timestamp, akurasi, serta ACK idempoten sebelum menghubungkan GPS Android. Implementasikan antrean yang bertahan saat offline/restart, dan pastikan data ulang tidak menggandakan titik. Selesai bila posisi uji setelah tersambung kembali muncul di Monitoring dan keterlambatannya bisa dibedakan dari status operasi.
-3. **Validasi operasi dengan data lapangan.** Sahkan batas geofence dan waktu minimum muat/bongkar, definisi ritase, sumber tonase aktual, dan aturan pembagian hari kerja WITA. Selesai bila beberapa perjalanan uji dapat direkonsiliasi dengan catatan lapangan tanpa menghitung ritase ganda.
-4. **Siapkan rilis.** Pilih konfigurasi server, basis data, pengamanan akun, kebijakan akses dan penyimpanan GPS, penyedia tile, serta signing Android. Lakukan uji perangkat nyata untuk izin, background/Doze, kehilangan jaringan, baterai, dan pemulihan setelah restart sebelum menyebutnya siap produksi.
+Pekerjaan dimulai dari akun, hak akses, dan penugasan truk. Admin dan Vendor memakai login Django yang sudah berjalan. Sopir memakai login nomor HP dan PIN di Flutter, dengan validasi akun dan penugasan di Django. Fokus client mobile tahap pertama adalah menghubungkan layar login, sesi login, dan daftar truk ke kontrak tersebut. Pelacakan Android menyusul setelah sopir bisa memulai shift dengan truk yang ditugaskan.
+
+- Saat bergerak, rekam GPS setiap **30 detik** dan kirim paket setiap **30 detik**. Saat diam, rekam GPS setiap **120 detik**. Dashboard Monitoring mengecek pembaruan setiap **30 detik**.
+- Milestone integrasi pertama memakai **satu supir, satu truk, dan satu shift**. Admin memantau seluruh Ekspeditur. Vendor memantau dan mengisi laporan untuk Ekspeditur akunnya.
+
+1. **Login supir dan penugasan truk sudah terhubung.** Admin mengaktifkan akun sopir, mereset PIN, dan mengatur penugasan dari Data Master. Supir masuk dengan nomor HP dan PIN enam digit. Django memverifikasi PIN dan mencabut token lama saat login baru. Aplikasi hanya menampilkan truk yang ditugaskan dari Django.
+2. **Sesi shift dan pengiriman GPS.** Catat sesi mulai/selesai di Django. Kirim titik simulasi dengan ID sesi, nomor urut, timestamp GPS, dan akurasi. Cek Monitoring sebagai Admin, Vendor pemilik truk, dan Vendor lain. Uji kirim ulang paket untuk memastikan setiap titik tercatat sekali.
+3. **Laporan Vendor tersimpan permanen.** Simpan laporan per Ekspeditur dan tanggal WITA agar Vendor bisa membukanya setelah login ulang dan Admin bisa melihat laporan seluruh Ekspeditur. Catat input manual Vendor secara terpisah dari ritase hasil hitung server.
+4. **GPS Android sungguhan.** Hubungkan modul Kotlin ke alur sesi Flutter. Uji izin, layar terkunci, penghemat baterai, kehilangan jaringan, pengiriman ulang, dan pemulihan setelah restart di HP fisik. Cocokkan ritase dengan batas area, durasi muat/bongkar, dan catatan lapangan sebelum rilis.
+
+Persiapan rilis mencakup konfigurasi server dan basis data, pengamanan akun, kebijakan akses dan retensi GPS, penyedia tile, serta signing Android.
 
 ## Pemeriksaan dan repositori
 

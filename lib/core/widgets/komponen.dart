@@ -10,11 +10,17 @@ import '../theme/app_space.dart';
 import '../theme/app_text.dart';
 import '../theme/app_ukuran.dart';
 
-void buka(BuildContext context, String rute, {bool ganti = false}) {
+void buka(
+  BuildContext context,
+  String rute, {
+  bool ganti = false,
+  Object? argumen,
+}) {
   if (ganti) {
-    Navigator.of(context).pushNamedAndRemoveUntil(rute, (_) => false);
+    Navigator.of(context)
+        .pushNamedAndRemoveUntil(rute, (_) => false, arguments: argumen);
   } else {
-    Navigator.of(context).pushNamed(rute);
+    Navigator.of(context).pushNamed(rute, arguments: argumen);
   }
 }
 
@@ -25,28 +31,36 @@ void pesan(BuildContext context, String teks) => ScaffoldMessenger.of(context)
 class Layar extends StatelessWidget {
   const Layar({
     super.key,
-    required this.judul,
     required this.children,
+    this.judul,
     this.kembali = false,
     this.aksi,
+    this.aksiKiri,
     this.logo = false,
     this.judulVendorUtama = false,
     this.tampilkanIndikatorDemo = true,
   });
-  final String judul;
+  final String? judul;
   final List<Widget> children;
   final bool kembali;
   final Widget? aksi;
+  final Widget? aksiKiri;
   final bool logo;
   final bool judulVendorUtama;
   final bool tampilkanIndikatorDemo;
   @override
   Widget build(BuildContext context) {
-    final vendor = AppScope.of(context).supir?.vendor.nama;
+    final supir = AppScope.of(context).supir;
+    final vendor = supir?.vendor.nama;
+    final judul = this.judul;
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        toolbarHeight: vendor == null ? null : AppUkuran.headerVendor,
+        toolbarHeight: judul == null || vendor == null
+            ? null
+            : judulVendorUtama
+            ? MediaQuery.textScalerOf(context).scale(AppUkuran.headerVendor)
+            : AppUkuran.headerVendor,
         leading: kembali
             ? IconButton(
                 tooltip: 'Kembali',
@@ -64,12 +78,29 @@ class Layar extends StatelessWidget {
                 },
               )
             : null,
-        title: vendor != null && judulVendorUtama
-            ? Text(
-                vendor,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: AppText.nomorTruk,
+        titleSpacing: judul == null ? AppSpace.s8 : null,
+        excludeHeaderSemantics: judul == null,
+        title: judul == null
+            ? aksiKiri
+            : supir != null && judulVendorUtama
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    supir.vendor.nama,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.nomorTruk,
+                  ),
+                  const SizedBox(height: AppSpace.s4),
+                  Text(
+                    'Hai, ${supir.nama}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.kecil,
+                  ),
+                ],
               )
             : vendor == null
             ? Text(judul)
@@ -214,13 +245,15 @@ class KartuInfo extends StatelessWidget {
     super.key,
     required this.child,
     this.warna = AppColors.permukaan,
+    this.padding = const EdgeInsets.all(AppSpace.s16),
   });
   final Widget child;
   final Color warna;
+  final EdgeInsetsGeometry padding;
   @override
   Widget build(BuildContext context) => Container(
     margin: const EdgeInsets.only(bottom: AppSpace.s12),
-    padding: const EdgeInsets.all(AppSpace.s16),
+    padding: padding,
     decoration: BoxDecoration(
       color: warna,
       borderRadius: AppRadius.brKartu,
@@ -436,7 +469,7 @@ class BarisTruk extends StatelessWidget {
     this.namaVendor,
   });
   final Truk truk;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final String? namaVendor;
   @override
   Widget build(BuildContext context) => Padding(
@@ -501,6 +534,7 @@ class ChipKesiapan extends StatelessWidget {
   final int jumlah;
   @override
   Widget build(BuildContext context) => Center(
+    widthFactor: 1,
     child: Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpace.s16,
@@ -512,6 +546,7 @@ class ChipKesiapan extends StatelessWidget {
       ),
       child: Text(
         siap ? '✓  HP siap · 5/5' : 'HP belum siap · $jumlah/5',
+        textAlign: TextAlign.center,
         style: AppText.kecilTebal.copyWith(
           color: siap ? AppColors.sukses : AppColors.bahaya,
         ),

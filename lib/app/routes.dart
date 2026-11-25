@@ -10,6 +10,7 @@ import '../features/beranda/layar_beranda.dart';
 import '../features/sesi_aktif/layar_sesi.dart';
 import '../features/peta/layar_peta.dart';
 import '../features/ringkasan/layar_ringkasan.dart';
+import '../features/ringkasan/layar_riwayat_sesi.dart';
 import '../features/debug/layar_debug.dart';
 import '../features/galeri/layar_galeri.dart';
 export 'nama_rute.dart';
@@ -19,6 +20,7 @@ Route<dynamic> buatRute(RouteSettings pengaturan) => MaterialPageRoute<void>(
   builder: (context) {
     final nama = AppScope.of(context)
         .lindungiRute(pengaturan.name ?? NamaRute.awal);
+    final argumen = pengaturan.arguments;
     return switch (nama) {
       NamaRute.awal => const LayarAwal(),
       NamaRute.persetujuan => const LayarPersetujuan(),
@@ -27,7 +29,10 @@ Route<dynamic> buatRute(RouteSettings pengaturan) => MaterialPageRoute<void>(
       NamaRute.beranda => const LayarBeranda(),
       NamaRute.sesi => const LayarSesi(),
       NamaRute.peta => const LayarPeta(),
-      NamaRute.ringkasan => const LayarRingkasan(),
+      NamaRute.ringkasan => LayarRingkasan(
+        idSesi: argumen is String ? argumen : null,
+      ),
+      NamaRute.riwayat => const LayarRiwayatSesi(),
       NamaRute.debug => const LayarDebug(),
       NamaRute.galeri => const LayarGaleri(),
       _ => const LayarAwal(bukaLogin: true),

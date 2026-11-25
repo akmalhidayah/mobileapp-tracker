@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../app/nama_rute.dart';
 import '../data/dummy/dummy_data.dart';
@@ -11,28 +12,44 @@ import '../data/models/ringkasan_sesi.dart';
 import '../data/models/snapshot_sesi.dart';
 import '../data/models/supir.dart';
 import '../data/models/truk.dart';
+import '../data/services/akun_sopir_api.dart';
 import '../data/services/tracking_service.dart';
 
 class AppState extends ChangeNotifier {
-  AppState({required this._layanan}) {
+  AppState({
+    required this._layanan,
+    AkunSopirApi? apiAkun,
+    this._preferensi,
+    this.loginDemo = false,
+  }) : _api = apiAkun {
     _langganan = _layanan.perubahan.listen((s) {
       _sesi = s;
       _beriTahu();
     });
   }
   final TrackingService _layanan;
+  final AkunSopirApi? _api;
+  final SharedPreferencesAsync? _preferensi;
+  static const _kunciKesiapan = 'tracker_tonasa_kesiapan_simulasi';
   late final StreamSubscription<SnapshotSesi> _langganan;
   Supir? _supir;
   bool _setuju = false, _mulai = false, _selesai = false, _dibuang = false;
   final _kesiapan = Map<PengaturanHp, bool>.of(DummyData.kesiapanAwal);
   Truk? _truk;
   SnapshotSesi? _sesi;
+  final _identitasSesi = <String, ({String hp, Truk truk})>{};
+  bool _akunSibuk = false;
+  String? pesanAkun;
+  bool get akunSibuk => _akunSibuk;
+  final bool loginDemo;
+  bool get loginTersedia => _api != null || loginDemo;
   bool _tileGagal = false;
   void _beriTahu() {
     if (!_dibuang) notifyListeners();
   }
 
   bool get sudahMasuk => _supir != null;
+  bool get perluPulihkanLogin => _api != null && !sudahMasuk;
   Supir? get supir => _supir;
   static String normalisasiHp(String nilai) =>
       nilai.replaceAll(RegExp(r'[\s+().-]'), '');
@@ -55,35 +72,109 @@ class AppState extends ChangeNotifier {
     return null;
   }
 
-  bool masuk({required String noHp, required String pin}) {
-    if (sesiAktif || _mulai || !hpValid(noHp) || !pinValid(pin)) return false;
-    final akun = cariAkun(noHp);
-    if (akun == null) return false;
-    _supir = Supir(
-      nama: akun.nama,
-      noHp: normalisasiHp(noHp),
-      vendor: akun.vendor,
-    );
-    _setuju = false;
-    _truk = null;
-    _beriTahu();
-    return true;
+  Future<bool> pulihkanLogin() => _ubahAkun(() async {
+    final kesiapan = await _preferensi?.getStringList(_kunciKesiapan);
+    if (kesiapan != null) {
+      for (final pengaturan in PengaturanHp.values) {
+        _kesiapan[pengaturan] = kesiapan.contains(pengaturan.name);
+      }
+    }
+    final profil = await _api?.pulihkan();
+    if (profil != null) _terapkanProfil(profil);
+  });
+
+  void _terapkanProfil(ProfilSopir profil) {
+    _supir = profil.supir;
+    _setuju = profil.sudahSetuju;
+    _truk = daftarTruk
+        .where((truk) => truk.id == profil.trukTerpilihId)
+        .firstOrNull;
   }
 
-  bool keluar() {
-    if (sesiAktif || sibuk) return false;
+  Future<bool> masuk({required String noHp, required String pin}) async {
+    if (sudahMasuk ||
+        sesiAktif ||
+        sibuk ||
+        _akunSibuk ||
+        !hpValid(noHp) ||
+        !pinValid(pin)) {
+      return false;
+    }
+    return _ubahAkun(() async {
+      final api = _api;
+      if (api != null) {
+        _terapkanProfil(await api.masuk(noHp: noHp, pin: pin));
+      } else if (loginDemo) {
+        final akun = cariAkun(noHp);
+        if (akun == null || pin != '123456') {
+          throw const KesalahanAkun('Periksa kembali nomor HP dan PIN Anda.');
+        }
+        _supir = Supir(
+          nama: akun.nama,
+          noHp: normalisasiHp(noHp),
+          vendor: akun.vendor,
+        );
+      } else {
+        throw const KesalahanAkun(
+          'Server login belum dikonfigurasi. Hubungi admin.',
+        );
+      }
+      _sesi = null;
+    });
+  }
+
+  Future<bool> keluar() async {
+    if (sesiAktif || sibuk || _akunSibuk) return false;
+    return _ubahAkun(() async {
+      await _api?.keluar();
+      _hapusAkun();
+    });
+  }
+
+  Future<bool> muatPenugasan() async {
+    final api = _api;
+    if (api == null || !sudahMasuk || sesiAktif || sibuk || _akunSibuk) {
+      return false;
+    }
+    return _ubahAkun(() async {
+      _terapkanProfil(await api.periksaSesi());
+    });
+  }
+
+  Future<bool> _ubahAkun(Future<void> Function() proses) async {
+    _akunSibuk = true;
+    pesanAkun = null;
+    _beriTahu();
+    try {
+      await proses();
+      return true;
+    } on KesalahanAkun catch (error) {
+      if (error.sesiHabis) _hapusAkun();
+      pesanAkun = error.pesan;
+      return false;
+    } catch (_) {
+      pesanAkun = 'Terjadi gangguan. Coba lagi.';
+      return false;
+    } finally {
+      _akunSibuk = false;
+      _beriTahu();
+    }
+  }
+
+  void _hapusAkun() {
     _supir = null;
     _setuju = false;
     _truk = null;
-    _beriTahu();
-    return true;
+    _sesi = null;
   }
 
   bool get sudahSetuju => _setuju;
-  void setuju() {
-    if (!sudahMasuk) return;
-    _setuju = true;
-    _beriTahu();
+  Future<bool> setuju() async {
+    if (!sudahMasuk || sesiAktif || _akunSibuk) return false;
+    return _ubahAkun(() async {
+      await _api?.setuju();
+      _setuju = true;
+    });
   }
 
   bool siap(PengaturanHp p) {
@@ -95,14 +186,18 @@ class AppState extends ChangeNotifier {
   int get jumlahPengaturan => PengaturanHp.values.length;
   int get jumlahSiap => PengaturanHp.values.where(siap).length;
   bool get semuaSiap => jumlahSiap == jumlahPengaturan;
-  void tandaiSiap(PengaturanHp p) {
+  Future<void> tandaiSiap(PengaturanHp p) async {
     _kesiapan[p] = true;
     if (p == PengaturanHp.gps) _kendali?.simulasiGpsMati = false;
     if (p == PengaturanHp.izinLokasi) _kendali?.izinDicabut = false;
     _beriTahu();
+    await _preferensi?.setStringList(_kunciKesiapan, [
+      for (final entri in _kesiapan.entries)
+        if (entri.value) entri.key.name,
+    ]);
   }
 
-  /// Hanya nomor lambung yang ditag untuk vendor akun supir ini.
+  /// Daftar penugasan dari akun sopir.
   List<Truk> get daftarTruk {
     final vendor = _supir?.vendor;
     if (vendor == null) return const [];
@@ -116,18 +211,26 @@ class AppState extends ChangeNotifier {
   AreaKerja get areaBongkar => DummyData.areaBongkar;
   Rute get ruteHauling => DummyData.ruteHauling;
   Truk? get truk => _truk;
-  bool pilihTruk(Truk truk) {
+  Future<bool> pilihTruk(Truk truk) async {
     if (!sudahMasuk ||
         !_setuju ||
         sesiAktif ||
         sibuk ||
+        _akunSibuk ||
         truk.vendorId != _supir!.vendor.id ||
         !daftarTruk.contains(truk)) {
       return false;
     }
-    _truk = truk;
-    _beriTahu();
-    return true;
+    return _ubahAkun(() async {
+      if (_api case final api?) {
+        final id = truk.id;
+        if (id == null) {
+          throw const KesalahanAkun('Nomor lambung tidak tersedia.');
+        }
+        await api.pilihTruk(id);
+      }
+      _truk = truk;
+    });
   }
 
   bool get sesiAktif => _layanan.terkini?.aktif ?? false;
@@ -139,13 +242,35 @@ class AppState extends ChangeNotifier {
       semuaSiap &&
       _truk != null &&
       !sesiAktif &&
-      !sibuk;
+      !sibuk &&
+      !_akunSibuk;
   Future<bool> mulaiSesi() async {
     if (!bolehMulai) return false;
     _mulai = true;
     _beriTahu();
     try {
-      await _layanan.mulai(nomorTruk: _truk!.nomor);
+      if (_api case final api?) {
+        final trukSebelumnya = _truk!.id;
+        final terverifikasi = await _ubahAkun(() async {
+          _terapkanProfil(await api.periksaSesi());
+          if (_truk?.id != trukSebelumnya) {
+            _truk = null;
+            throw const KesalahanAkun(
+              'Penugasan berubah. Pilih kembali nomor lambung Anda.',
+            );
+          }
+        });
+        if (!terverifikasi || !_setuju || _dibuang) return false;
+      }
+      final truk = _truk!;
+      await _layanan.mulai(nomorTruk: truk.nomor);
+      final dibuat = _layanan.terkini;
+      if (dibuat != null) {
+        _identitasSesi[dibuat.sessionId] = (
+          hp: _kunciHp(_supir!.noHp),
+          truk: truk,
+        );
+      }
       return sesiAktif;
     } catch (_) {
       return false;
@@ -168,22 +293,28 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  List<RingkasanSesi> get riwayat => _layanan.riwayat
-      .map(
-        (s) => RingkasanSesi(
-          sessionId: s.sessionId,
-          truk: DummyData.daftarTruk.firstWhere((t) => t.nomor == s.nomorTruk),
-          durasi: s.durasi,
-          ritase: s.ritase,
-          titikTerkirim: s.titikTerkirim,
-          pending: s.belumTerkirim,
-          mulai: s.mulai,
-          selesai: s.waktu,
-          otomatis: s.otomatis,
-        ),
-      )
-      .toList();
-  RingkasanSesi? get ringkasanTerakhir => riwayat.isEmpty ? null : riwayat.last;
+  List<RingkasanSesi> get riwayat {
+    final hp = _supir?.noHp;
+    if (hp == null) return const [];
+    final kunci = _kunciHp(hp);
+    return [
+      for (final s in _layanan.riwayat)
+        if (_identitasSesi[s.sessionId]?.hp == kunci)
+          RingkasanSesi(
+            sessionId: s.sessionId,
+            truk: _identitasSesi[s.sessionId]!.truk,
+            durasi: s.durasi,
+            ritase: s.ritase,
+            titikTerkirim: s.titikTerkirim,
+            pending: s.belumTerkirim,
+            mulai: s.mulai,
+            selesai: s.waktu,
+            otomatis: s.otomatis,
+          ),
+    ];
+  }
+
+  RingkasanSesi? get ringkasanTerakhir => riwayat.lastOrNull;
   int get pendingLama => riwayat.fold(0, (n, s) => n + s.pending);
   String get ruteSemestinya {
     if (!sudahMasuk) return NamaRute.masuk;
@@ -212,6 +343,7 @@ class AppState extends ChangeNotifier {
     if (nama == NamaRute.kesiapan) return nama;
     if (!semuaSiap && _truk == null) return NamaRute.kesiapan;
     if (_truk == null || nama == NamaRute.pilihTruk) return NamaRute.pilihTruk;
+    if (nama == NamaRute.riwayat) return nama;
     return NamaRute.beranda;
   }
 
@@ -269,16 +401,15 @@ class AppState extends ChangeNotifier {
   void lompatKe(Duration durasi) => _kendali?.lompatKe(durasi);
   Future<void> resetSemua() async {
     await _layanan.reset();
-    _supir = null;
-    _setuju = false;
-    _truk = null;
-    _sesi = null;
+    if (sudahMasuk) await keluar();
+    _identitasSesi.clear();
     _tileGagal = false;
     _mulai = false;
     _selesai = false;
     _kesiapan
       ..clear()
       ..addAll(DummyData.kesiapanAwal);
+    await _preferensi?.remove(_kunciKesiapan);
     _beriTahu();
   }
 
@@ -287,6 +418,7 @@ class AppState extends ChangeNotifier {
     _dibuang = true;
     _langganan.cancel();
     _layanan.dispose();
+    _api?.dispose();
     super.dispose();
   }
 }

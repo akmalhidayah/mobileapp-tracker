@@ -24,7 +24,8 @@ class _LayarPilihTrukState extends State<LayarPilihTruk> {
   @override
   Widget build(BuildContext context) {
     final s = AppScope.of(context);
-    final vendor = s.supir!.vendor;
+    final vendor = s.supir?.vendor;
+    if (vendor == null) return const SizedBox.shrink();
     final semua = s.daftarTruk;
     final contohScan = semua.isEmpty
         ? null
@@ -36,8 +37,11 @@ class _LayarPilihTrukState extends State<LayarPilihTruk> {
         if (t.nomor.toLowerCase().contains(_kata.trim().toLowerCase())) t,
     ];
 
-    void pilih(Truk truk) {
-      if (s.pilihTruk(truk)) buka(context, NamaRute.beranda, ganti: true);
+    Future<void> pilih(Truk truk) async {
+      final berhasil = await s.pilihTruk(truk);
+      if (context.mounted && (berhasil || !s.sudahMasuk)) {
+        buka(context, s.ruteSemestinya, ganti: true);
+      }
     }
 
     return Layar(
@@ -46,11 +50,6 @@ class _LayarPilihTrukState extends State<LayarPilihTruk> {
       kembali: s.truk != null,
       children: [
         Text('Truk yang Anda bawa', style: AppText.judul),
-        const SizedBox(height: AppSpace.s8),
-        Text(
-          'Pilih nomor lambung armada ${vendor.namaSingkat} atau coba scan QR simulasi.',
-          style: AppText.isi,
-        ),
         const SizedBox(height: AppSpace.s16),
         KartuInfo(
           warna: AppColors.aksenLembut,
@@ -64,7 +63,7 @@ class _LayarPilihTrukState extends State<LayarPilihTruk> {
               const SizedBox(height: AppSpace.s8),
               const SizedBox(width: double.infinity, child: IlustrasiTruk()),
               const SizedBox(height: AppSpace.s8),
-              Text('Dump truck · 30 ton', style: AppText.nomorTruk),
+              Text('Truk angkut clinker', style: AppText.nomorTruk),
               const SizedBox(height: AppSpace.s4),
               Text(
                 'Ilustrasi kendaraan · pilih nomor unit di bawah.',
@@ -73,13 +72,29 @@ class _LayarPilihTrukState extends State<LayarPilihTruk> {
             ],
           ),
         ),
-        Tombol(
-          contohScan == null
-              ? 'Scan QR · belum ada unit'
-              : 'Scan QR · simulasi ${contohScan.nomor}',
-          ikon: Icons.qr_code_scanner,
-          onTap: contohScan == null ? null : () => pilih(contohScan),
-        ),
+        if (s.loginDemo)
+          Tombol(
+            contohScan == null
+                ? 'Scan QR · belum ada unit'
+                : 'Scan QR · simulasi ${contohScan.nomor}',
+            ikon: Icons.qr_code_scanner,
+            onTap: contohScan == null ? null : () => pilih(contohScan),
+          ),
+        if (!s.loginDemo)
+          Tombol(
+            'Muat ulang penugasan',
+            sekunder: true,
+            ikon: Icons.refresh,
+            onTap: s.akunSibuk
+                ? null
+                : () async {
+                    await s.muatPenugasan();
+                    if (context.mounted && !s.sudahMasuk) {
+                      buka(context, NamaRute.masuk, ganti: true);
+                    }
+                  },
+          ),
+        if (s.pesanAkun case final pesan?) BannerPeringatan(pesan),
         const SizedBox(height: AppSpace.s24),
         Text('NOMOR LAMBUNG · ${semua.length} UNIT', style: AppText.penanda),
         const SizedBox(height: AppSpace.s12),
@@ -114,7 +129,9 @@ class _LayarPilihTrukState extends State<LayarPilihTruk> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: AppSpace.s16),
             child: Text(
-              'Tidak ada nomor lambung "$_kata" di armada ${vendor.namaSingkat}.',
+              semua.isEmpty
+                  ? 'Belum ada truk yang ditugaskan. Hubungi admin.'
+                  : 'Tidak ada nomor lambung "$_kata" di armada ${vendor.namaSingkat}.',
               textAlign: TextAlign.center,
               style: AppText.kecil,
             ),
@@ -123,7 +140,7 @@ class _LayarPilihTrukState extends State<LayarPilihTruk> {
           BarisTruk(
             truk: t,
             namaVendor: vendor.namaSingkat,
-            onTap: () => pilih(t),
+            onTap: s.akunSibuk ? null : () => pilih(t),
           ),
       ],
     );
